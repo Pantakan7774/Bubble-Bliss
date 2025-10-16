@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ร้านชานม บับเบิล บลิส 🧋</title>
+<style>
+  body { font-family: "TH Sarabun New", sans-serif; background-color: #fff7e6; margin: 0; }
+  header { background: #ffb6b9; padding: 10px; text-align: center; color: white; font-size: 24px; font-weight: bold; }
+  .tabs { display: flex; justify-content: center; background: #fff0f0; padding: 5px; }
+  .tab { cursor: pointer; padding: 10px 20px; background: #fff; margin: 0 5px; border-radius: 10px; }
+  .tab.active { background: #ffb6b9; color: white; }
+  .page { display: none; padding: 15px; }
+  .page.active { display: block; }
+  .menu-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+  .item { background: #fff; border: 1px solid #f3d9b1; border-radius: 10px; padding: 10px; width: 210px; box-shadow: 0 0 5px #ddd; }
+  .sweet-box, .topping-box, .quantity-box { margin-top: 8px; }
+  button { background: #ffb6b9; border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; }
+  #cart-list { text-align: left; padding: 10px; }
+  #checkout-btn { background: #ffa8a8; padding: 10px 20px; font-size: 18px; border-radius: 10px; }
+  input[type=number] { width: 60px; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>ร้านชานม บับเบิล บลิส 🧋</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPage('menu')">เมนู</div>
+  <div class="tab" onclick="showPage('cart')">ตะกร้า</div>
+</div>
+
+<!-- หน้าเมนู -->
+<div class="page active" id="menu">
+  <h2 style="text-align:center;">🍹 เมนูชา 🍹</h2>
+  <div class="menu-grid" id="tea-menu"></div>
+
+  <h2 style="text-align:center;">🍓 เมนูน้ำผลไม้ 🍓</h2>
+  <div class="menu-grid" id="fruit-menu"></div>
+</div>
+
+<!-- หน้าตะกร้า -->
+<div class="page" id="cart">
+  <h2 style="text-align:center;">🧺 ตะกร้าสินค้า</h2>
+  <div id="cart-list"></div>
+  <p id="total" style="text-align:center; font-weight:bold;">รวมทั้งหมด: 0฿</p>
+  <div style="text-align:center;">
+    <button id="checkout-btn" onclick="checkout()">ชำระเงิน</button>
+  </div>
+</div>
+
+<script>
+// ---------- เมนู ----------
+const menuTea = {
+  "ชาไทย บับเบิล บลิส": 50,
+  "ชานมไต้หวัน บับเบิล บลิส": 50,
+  "น้ำผึ้งมิลค์ บับเบิล บลิส": 50,
+  "โกโก้ บับเบิล บลิส": 50,
+  "มัทฉะ บับเบิล บลิส": 50,
+  "ชานมเผือก บับเบิล บลิส": 50,
+  "บราวน์ชูการ์ บับเบิล บลิส": 60,
+  "ชานมวนิลา บับเบิล บลิส": 50,
+  "ชานมคุกกี้ครีม บับเบิล บลิส": 60,
+  "ชานมช็อกโกแลต บับเบิล บลิส": 60
+};
+
+const menuFruit = {
+  "สตรอเบอร์รี บับเบิล บลิส": 39,
+  "มะม่วง บับเบิล บลิส": 39,
+  "กีวี บับเบิล บลิส": 39,
+  "พีช บับเบิล บลิส": 39,
+  "เสาวรส บับเบิล บลิส": 39,
+  "ลิ้นจี่ บับเบิล บลิส": 39
+};
+
+// ---------- ท็อปปิ้ง ----------
+const toppings = {
+  "ไม่มี": 0,
+  "ไข่มุก (+10฿)": 10,
+  "วุ้นมะพร้าว (+15฿)": 15,
+  "ฟรุตสลัด (+15฿)": 15,
+  "มุกบราวน์ชูการ์ (+20฿)": 20,
+  "วิปครีม (+20฿)": 20,
+  "เจลลี่บราวน์ชูการ์ (+20฿)": 20
+};
+
+let cart = [];
+let total = 0;
+
+// ---------- สร้างเมนู ----------
+function renderMenu(menu, containerId) {
+  const container = document.getElementById(containerId);
+  for (const [name, price] of Object.entries(menu)) {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <strong>${name}</strong><br>${price}฿<br>
+      <div class="sweet-box">
+        <label>เลือกระดับความหวาน:</label><br>
+        <select id="sweet-${name}">
+          <option value="หวาน 0%">0%</option>
+          <option value="หวาน 50%">50%</option>
+          <option value="หวาน 100%" selected>100%</option>
+          <option value="หวาน 125%">125%</option>
+        </select>
+      </div>
+      <div class="topping-box">
+        <label>เลือกท็อปปิ้ง:</label><br>
+        <select id="topping-${name}">
+          ${Object.entries(toppings).map(([tname, tprice]) => 
+            `<option value="${tprice}">${tname}</option>`).join('')}
+        </select>
+      </div>
+      <div class="quantity-box">
+        <label>จำนวนแก้ว:</label><br>
+        <input type="number" id="qty-${name}" value="1" min="1" max="20">
+      </div><br>
+      <button onclick="addToCart('${name}', ${price})">เพิ่มลงตะกร้า</button>
+    `;
+    container.appendChild(div);
+  }
+}
+
+renderMenu(menuTea, "tea-menu");
+renderMenu(menuFruit, "fruit-menu");
+
+// ---------- เพิ่มลงตะกร้า ----------
+function addToCart(name, price) {
+  const sweet = document.getElementById(`sweet-${name}`).value;
+  const toppingSelect = document.getElementById(`topping-${name}`);
+  const toppingName = toppingSelect.options[toppingSelect.selectedIndex].text;
+  const toppingPrice = parseInt(toppingSelect.value);
+  const qty = parseInt(document.getElementById(`qty-${name}`).value);
+
+  const totalItem = (price + toppingPrice) * qty;
+  cart.push({name, price, sweet, topping: toppingName, toppingPrice, qty, totalItem});
+  alert(`${name} (${sweet}, ${toppingName}, ${qty} แก้ว) เพิ่มลงตะกร้าแล้ว!`);
+  updateCart();
+}
+
+// ---------- อัปเดตตะกร้า ----------
+function updateCart() {
+  const cartList = document.getElementById("cart-list");
+  cartList.innerHTML = "";
+  total = 0; // รีเซ็ตรวมก่อนคำนวณใหม่
+  cart.forEach((item, index) => {
+    total += item.totalItem;
+    const p = document.createElement("p");
+    p.innerHTML = `${item.name} (${item.sweet}, ${item.topping}) × ${item.qty} = ${item.totalItem}฿ 
+                   <button onclick="removeFromCart(${index})">ลบ</button>`;
+    cartList.appendChild(p);
+  });
+  document.getElementById("total").textContent = `รวมทั้งหมด: ${total}฿`;
+}
+
+// ---------- ลบสินค้า ----------
+function removeFromCart(index) {
+  if (index >= 0 && index < cart.length) {
+    cart.splice(index, 1); // ลบรายการจาก cart
+    updateCart(); // อัปเดตตะกร้าใหม่
+  }
+}
+
+// ---------- ชำระเงิน ----------
+function checkout() {
+  if (cart.length === 0) {
+    alert("ยังไม่มีสินค้าในตะกร้า");
+    return;
+  }
+  let receipt = "🧾 ใบเสร็จ บับเบิล บลิส 🧋\n\n";
+  cart.forEach(item => {
+    receipt += `${item.name} (${item.sweet}, ${item.topping}) × ${item.qty} = ${item.totalItem}฿\n`;
+  });
+  receipt += `\nรวมทั้งหมด: ${total}฿\n\nขอบคุณค่ะ 💖`;
+  alert(receipt);
+  cart = [];
+  total = 0;
+  updateCart();
+}
+
+// ---------- เปลี่ยนแท็บ ----------
+function showPage(pageId) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab[onclick="showPage('${pageId}')"]`).classList.add('active');
+  document.getElementById(pageId).classList.add('active');
+}
+</script>
+
+</body>
+</html>
